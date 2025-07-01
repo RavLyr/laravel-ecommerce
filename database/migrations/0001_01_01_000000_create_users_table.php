@@ -17,6 +17,9 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->enum('role', ['admin', 'seller', 'customer'])->default('customer');
+            $table->string('phone')->nullable();
+            $table->boolean('is_verified')->default(false); // hanya penting untuk selle
             $table->rememberToken();
             $table->timestamps();
         });
