@@ -13,4 +13,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
+Route::middleware(['auth:sanctum', 'role:admin'])
+    ->prefix('admin')
+    ->group(function () {
+        Route::get('/dashboard', fn () => response()->json(['message' => 'You are an admin']));
+    });
 
+Route::middleware(['auth:sanctum', 'role:seller'])
+    ->prefix('seller')
+    ->group(function () {
+        Route::get('/dashboard', fn () => response()->json(['message' => 'You are a seller']));
+    });
+
+Route::middleware(['auth:sanctum', 'role:customer'])
+    ->prefix('customer')
+    ->group(function () {
+        Route::get('/dashboard', fn () => response()->json(['message' => 'You are a customer']));
+    });
