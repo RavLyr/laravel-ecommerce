@@ -2,21 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
+use App\Domains\Category\Models\Category;
+use App\Domains\Category\Repositories\CategoryRepository;
 use Illuminate\Http\JsonResponse as HttpJsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class CategoryController extends Controller
 {
+    protected $categoryRepository;
+
+    public function __construct(CategoryRepository $categoryRepository)
+    {
+        $this->categoryRepository = $categoryRepository;
+    }
     /**
      * Display a listing of the resource.
      */
     public function index(): HttpJsonResponse
     {
-        //
-
-        $categories = Category::orderBy('name')->get();
+        $categories = $this->categoryRepository->all();
         return response()->json($categories, Response::HTTP_OK);
     }
 
@@ -30,16 +35,13 @@ class CategoryController extends Controller
         ]);
 
         try {
-            $category = Category::create($data);
+            $category = $this->categoryRepository->create($data);
             return response()->json($category, Response::HTTP_CREATED);
         } catch (\Exception $e) {
-            return response()->json(
-                [
-                    'error' => 'Failed to create category',
-                    'message' => $e->getMessage()
-                ],
-                Response::HTTP_BAD_REQUEST
-            );
+            return response()->json([
+                'error' => 'Failed to create category',
+                'message' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -48,7 +50,7 @@ class CategoryController extends Controller
      */
     public function show(int $id)
     {
-        $category = Category::find($id);
+        $category = $this->categoryRepository->find($id);
         if (!$category) {
             return response()->json(['error' => 'Category not found'], Response::HTTP_NOT_FOUND);
         }
@@ -64,22 +66,19 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        $category = Category::find($id);
+        $category = $this->categoryRepository->find($id);
         if (!$category) {
             return response()->json(['error' => 'Category not found'], Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $category->update($data);
+            $this->categoryRepository->update($category, $data);
             return response()->json($category, Response::HTTP_OK);
         } catch (\Exception $e) {
-            return response()->json(
-                [
-                    'message' => 'Failed to update category',
-                    'error' => $e->getMessage()
-                ],
-                Response::HTTP_BAD_REQUEST
-            );
+            return response()->json([
+                'message' => 'Failed to update category',
+                'error' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -88,22 +87,19 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        $category = Category::find($id);
+        $category = $this->categoryRepository->find($id);
         if (!$category) {
             return response()->json(['error' => 'Category not found'], Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $category->delete();
+            $this->categoryRepository->delete($category);
             return response()->json(['message' => 'Category deleted successfully'], Response::HTTP_OK);
         } catch (\Exception $e) {
-            return response()->json(
-                [
-                    'message' => 'Failed to delete category',
-                    'error' => $e->getMessage()
-                ],
-                Response::HTTP_BAD_REQUEST
-            );
+            return response()->json([
+                'message' => 'Failed to delete category',
+                'error' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 }
