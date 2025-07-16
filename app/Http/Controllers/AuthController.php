@@ -3,61 +3,44 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Domains\Auth\Requests\RegisterRequest;
+use App\Domains\Auth\Requests\LoginRequest;
+use App\Domains\Auth\Services\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    protected $authService;
+
+    public function __construct(AuthService $authService)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:admin,seller,customer', 
-        ]);
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => bcrypt($validated['password']),
-            'role' => $validated['role'],
-            'is_verified' => $validated['role'] === 'seller' ? false : true,
-        ]);
+        $this->authService = $authService;
+    }
 
+    public function register(RegisterRequest $request)
+    {
+        $user = $this->authService->register($request->validated());
         $token = $user->createToken('api-token')->plainTextToken;
-
         return response()->json([
             'user' => $user,
             'token' => $token,
         ], 201);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $validaated = $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
-
-        $user = User::where('email', $validaated['email'])->first();
-        if (!$user || ! Hash::check($validaated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The credentials are incorrect.'],
+        try {
+            $user = $this->authService->login($request->validated());
+            $token = $user->createToken('api-token')->plainTextToken;
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 403);
         }
-        if ($user->role === 'seller' && ! $user->is_verified) {
-            return response()->json(['message' => 'Seller account not verified'], 403);
-        }
-
-        $user->tokens()->delete();
-
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ]);
     }
 
     public function user(Request $request)
